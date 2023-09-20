@@ -1,145 +1,190 @@
+
 #include "main.h"
 
+/************************* PRINT CHAR *************************/
+
 /**
- * printf_percent - prints the char 37.
- *which is the percentage(%) sign
- * Return: 1.
+ * print_char - Prints a char
+ * @types: List a of arguments
+ * @buffer: Buffer array to handle print
+ * @flags:  Calculates active flags
+ * @width: Width
+ * @precision: Precision specification
+ * @size: Size specifier
+ * Return: Number of chars printed
  */
-int printf_percent(void)
+int print_char(va_list types, char buffer[],
+	int flags, int width, int precision, int size)
 {
-	char_put(37);
-	return (1);
+	char c = va_arg(types, int);
+
+	return (handle_write_char(c, buffer, flags, width, precision, size));
 }
-
+/************************* PRINT A STRING *************************/
 /**
- * print_char - prints a character
- * @value: arguments.
- * Return: 1.
+ * print_string - Prints a string
+ * @types: List a of arguments
+ * @buffer: Buffer array to handle print
+ * @flags:  Calculates active flags
+ * @width: get width.
+ * @precision: Precision specification
+ * @size: Size specifier
+ * Return: Number of chars printed
  */
-int print_char(va_list value)
+int print_string(va_list types, char buffer[],
+	int flags, int width, int precision, int size)
 {
-	char s;
+	int length = 0, i;
+	char *str = va_arg(types, char *);
 
-	s = va_arg(value, int);
-	char_put(s);
-	return (1);
-}
-
-/**
- * print_string - prints string to standard output.
- * @val: argumen t.
- * Return: the length of the string.
- */
-
-int print_string(va_list val)
-{
-	char *s;
-	int i, len;
-
-	s = va_arg(val, char *);
-	if (s == NULL)
+	UNUSED(buffer);
+	UNUSED(flags);
+	UNUSED(width);
+	UNUSED(precision);
+	UNUSED(size);
+	if (str == NULL)
 	{
-		s = "(null)";
-		len = _strlen(s);
-		for (i = 0; i < len; i++)
-			char_put(s[i]);
-		return (len);
+		str = "(null)";
+		if (precision >= 6)
+			str = "      ";
 	}
-	else
-	{
-		len = _strlen(s);
-		for (i = 0; i < len; i++)
-			char_put(s[i]);
-		return (len);
-	}
-}
 
-/**
- * print_int - prints integer
- * @args: argument to print
- * Return: number of characters printed
- */
-int print_int(va_list args)
-{
-	int n = va_arg(args, int);
-	int num, last = n % 10, digit, exp = 1;
-	int  i = 1;
+	while (str[length] != '\0')
+		length++;
 
-	n = n / 10;
-	num = n;
+	if (precision >= 0 && precision < length)
+		length = precision;
 
-	if (last < 0)
+	if (width > length)
 	{
-		char_put('-');
-		num = -num;
-		n = -n;
-		last = -last;
-		i++;
-	}
-	if (num > 0)
-	{
-		while (num / 10 != 0)
+		if (flags & F_MINUS)
 		{
-			exp = exp * 10;
-			num = num / 10;
+			write(1, &str[0], length);
+			for (i = width - length; i > 0; i--)
+				write(1, " ", 1);
+			return (width);
 		}
-		num = n;
-		while (exp > 0)
+		else
 		{
-			digit = num / exp;
-			char_put(digit + '0');
-			num = num - (digit * exp);
-			exp = exp / 10;
-			i++;
+			for (i = width - length; i > 0; i--)
+				write(1, " ", 1);
+			write(1, &str[0], length);
+			return (width);
 		}
 	}
-	char_put(last + '0');
 
-	return (i);
+	return (write(1, str, length));
 }
-
+/************************* PRINT PERCENT SIGN *************************/
 /**
- * print_decimal - prints decimal
- * @args: argument to print
- * Return: number of characters printed
+ * print_percent - Prints a percent sign
+ * @types: Lista of arguments
+ * @buffer: Buffer array to handle print
+ * @flags:  Calculates active flags
+ * @width: get width.
+ * @precision: Precision specification
+ * @size: Size specifier
+ * Return: Number of chars printed
  */
-
-int print_decimal(va_list args)
+int print_percent(va_list types, char buffer[],
+	int flags, int width, int precision, int size)
 {
-	int n = va_arg(args, int);
-	int num, last = n % 10, digit;
-	int  i = 1;
-	int exp = 1;
-
-	n = n / 10;
-	num = n;
-
-	if (last < 0)
-	{
-		char_put('-');
-		num = -num;
-		n = -n;
-		last = -last;
-		i++;
-	}
-	if (num > 0)
-	{
-		while (num / 10 != 0)
-		{
-			exp = exp * 10;
-			num = num / 10;
-		}
-		num = n;
-		while (exp > 0)
-		{
-			digit = num / exp;
-			char_put(digit + '0');
-			num = num - (digit * exp);
-			exp = exp / 10;
-			i++;
-		}
-	}
-	char_put(last + '0');
-
-	return (i);
+	UNUSED(types);
+	UNUSED(buffer);
+	UNUSED(flags);
+	UNUSED(width);
+	UNUSED(precision);
+	UNUSED(size);
+	return (write(1, "%%", 1));
 }
+
+/************************* PRINT INT *************************/
+/**
+ * print_int - Print int
+ * @types: Lista of arguments
+ * @buffer: Buffer array to handle print
+ * @flags:  Calculates active flags
+ * @width: get width.
+ * @precision: Precision specification
+ * @size: Size specifier
+ * Return: Number of chars printed
+ */
+int print_int(va_list types, char buffer[],
+	int flags, int width, int precision, int size)
+{
+	int i = BUFF_SIZE - 2;
+	int is_negative = 0;
+	long int n = va_arg(types, long int);
+	unsigned long int num;
+
+	n = convert_size_number(n, size);
+
+	if (n == 0)
+		buffer[i--] = '0';
+
+	buffer[BUFF_SIZE - 1] = '\0';
+	num = (unsigned long int)n;
+
+	if (n < 0)
+	{
+		num = (unsigned long int)((-1) * n);
+		is_negative = 1;
+	}
+
+	while (num > 0)
+	{
+		buffer[i--] = (num % 10) + '0';
+		num /= 10;
+	}
+
+	i++;
+
+	return (write_number(is_negative, i, buffer, flags, width, precision, size));
+}
+
+/************************* PRINT BINARY *************************/
+/**
+ * print_binary - Prints an unsigned number
+ * @types: Lista of arguments
+ * @buffer: Buffer array to handle print
+ * @flags:  Calculates active flags
+ * @width: get width.
+ * @precision: Precision specification
+ * @size: Size specifier
+ * Return: Numbers of char printed.
+ */
+int print_binary(va_list types, char buffer[],
+	int flags, int width, int precision, int size)
+{
+	unsigned int n, m, i, sum;
+	unsigned int a[32];
+	int count;
+
+	UNUSED(buffer);
+	UNUSED(flags);
+	UNUSED(width);
+	UNUSED(precision);
+	UNUSED(size);
+
+	n = va_arg(types, unsigned int);
+	m = 2147483648; /* (2 ^ 31) */
+	a[0] = n / m;
+	for (i = 1; i < 32; i++)
+	{
+		m /= 2;
+		a[i] = (n / m) % 2;
+	}
+	for (i = 0, sum = 0, count = 0; i < 32; i++)
+	{
+		sum += a[i];
+		if (sum || i == 31)
+		{
+			char z = '0' + a[i];
+
+			write(1, &z, 1);
+			count++;
+		}
+	}
+	return (count);
+}
+
